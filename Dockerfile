@@ -1,13 +1,16 @@
 FROM golang:1.21-alpine AS builder
 WORKDIR /app
+
+# Install git
 RUN apk add --no-cache git
 
 # Clone the repository
 RUN git clone https://github.com/ChairbfBackup/listmonk.git .
 
-# Build the application
-RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux go build -o listmonk
+# Initialize go module and download dependencies
+RUN go mod init listmonk || true
+RUN go mod tidy
+RUN go build -o listmonk
 
 FROM alpine:latest
 WORKDIR /listmonk
