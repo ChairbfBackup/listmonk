@@ -1,5 +1,5 @@
-x-db-credentials: &db-credentials                             # Use the default POSTGRES_ credentials if they're available or simply default to "listmonk"
-  POSTGRES_USER: &db-user listmonk                            # for database user, password, and database name
+x-db-credentials: &db-credentials
+  POSTGRES_USER: &db-user listmonk
   POSTGRES_PASSWORD: &db-password listmonk
   POSTGRES_DB: &db-name listmonk
 
@@ -10,18 +10,20 @@ services:
     container_name: listmonk_app
     restart: unless-stopped
     ports:
-      - "9000:9000"                                           # To change the externally exposed port, change to: $custom_port:9000
+      - "9000:9000"
     networks:
       - listmonk
-    hostname: listmonk.example.com                            # Recommend using FQDN for hostname
+    hostname: listmonk.tleem.org
     depends_on:
       - db
-    command: [sh, -c, "./listmonk --install --idempotent --yes --config '' && ./listmonk --upgrade --yes --config '' && ./listmonk --config ''"]
-                                                              # --config (file) param is set to empty so that listmonk only uses the env vars (below) for config.
-                                                              # --install --idempotent ensures that DB installation happens only once on an empty DB, on the first ever start.
-                                                              # --upgrade automatically runs any DB migrations when a new image is pulled.
-
-    environment:                                              # The same params as in config.toml are passed as env vars here.
+    command: 
+      - sh
+      - -c
+      - >
+        ./listmonk --install --idempotent --yes --config '' && 
+        ./listmonk --upgrade --yes --config '' && 
+        ./listmonk --config ''
+    environment:
       LISTMONK_app__address: 0.0.0.0:9000
       LISTMONK_db__user: *db-user
       LISTMONK_db__password: *db-password
@@ -33,11 +35,10 @@ services:
       LISTMONK_db__max_idle: 25
       LISTMONK_db__max_lifetime: 300s
       TZ: Etc/UTC
-      LISTMONK_ADMIN_USER: ${LISTMONK_ADMIN_USER:-}           # If these (optional) are set during the first `docker compose up`, then the Super Admin user is automatically created.
-      LISTMONK_ADMIN_PASSWORD: ${LISTMONK_ADMIN_PASSWORD:-}   # Otherwise, the user can be setup on the web app after the first visit to http://localhost:9000
+      LISTMONK_ADMIN_USER: ${LISTMONK_ADMIN_USER:-}
+      LISTMONK_ADMIN_PASSWORD: ${LISTMONK_ADMIN_PASSWORD:-}
     volumes:
-      - ./uploads:/listmonk/uploads:rw                        # Mount an uploads directory on the host to /listmonk/uploads inside the container.
-                                                              # To use this, change directory path in Admin -> Settings -> Media to /listmonk/uploads
+      - ./uploads:/listmonk/uploads:rw
 
   # Postgres database
   db:
@@ -59,6 +60,37 @@ services:
       - type: volume
         source: listmonk-data
         target: /var/lib/postgresql/data
+
+  nginx:
+    image: nginx:mainline-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./data/nginx:/etc/nginx/conf.d
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    networks:
+      - listmonk
+    depends_on:
+      - app
+    command: >
+      /bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'
+
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    container_name: certbot
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    networks:
+      - listmonk
+    depends_on:
+      - nginx
+    entrypoint: >
+      /bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'
 
 networks:
   listmonk:
