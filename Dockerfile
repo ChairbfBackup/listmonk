@@ -1,7 +1,7 @@
 FROM golang:1.21-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache git
-COPY . .
+RUN git clone https://github.com/ChairbfBackup/listmonk.git .
 RUN go mod download
 RUN go build -o listmonk
 
