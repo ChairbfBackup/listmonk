@@ -50,16 +50,6 @@
                 background: #111;
             }
 
-            .footer {
-                text-align: center;
-                font-size: 12px;
-                color: #888;
-            }
-                .footer a {
-                    color: #888;
-                    margin-right: 5px;
-                }
-
             .gutter {
                 padding: 30px;
             }
@@ -89,10 +79,6 @@
     <div class="gutter" style="padding: 30px;">&nbsp;</div>
     <div class="wrap" style="background-color: #fff;padding: 30px;max-width: 525px;margin: 0 auto;border-radius: 5px;">
         {{ template "content" . }}
-    </div>
-    
-    <div class="footer" style="text-align: center;font-size: 12px;color: #888;">
-        <p>{{ L.T "public.poweredBy" }} <a href="https://listmonk.app" target="_blank" rel="noreferrer" style="color: #888;">listmonk</a></p>
     </div>
 </body>
 </html>
