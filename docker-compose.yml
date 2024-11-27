@@ -13,7 +13,7 @@ services:
       - "9000:9000"
     networks:
       - listmonk
-    hostname: listmonk.tleem.org
+    hostname: mail.tleem.org
     depends_on:
       - db
     command: 
